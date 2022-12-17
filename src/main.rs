@@ -12,24 +12,13 @@ use bdk::descriptor::Segwitv0;
 use bdk::{wallet::AddressIndex, Error, KeychainKind, Wallet, SyncOptions};
 use bdk::blockchain::{ElectrumBlockchain};
 
+const INPUT_FILE: &str = "data.json";
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Open the file in read-only mode with buffer.
-    let mut file = File::open("data.json")?;
-    let mut data = String::new();
-    file.read_to_string(&mut data)?;
 
-    // Parse the string of data into a JSON value.
-    let v: serde_json::Value = serde_json::from_str(&data)?;
+    let policy = get_policy().map_err(|err| err.to_string())?;
 
-    let pubkey1 = v["pubkey1"].as_str().unwrap();
-    let pubkey2 = v["pubkey2"].as_str().unwrap();
-    let policy = v["policy"].as_str().unwrap().replace("$MY_KEY", pubkey1).replace("$OTHER_KEY", pubkey2);
-
-    println!("pubkey1 is {}", pubkey1);
-    println!("pubkey2 is {}", pubkey2);
-    println!("policy is {}", policy);
-
-    let policy = Concrete::<String>::from_str(policy.as_str())?;
+    let policy = Concrete::<String>::from_str(&policy)?;
     let segwit_policy: Miniscript<String, Segwitv0> = policy
         .compile()
         .map_err(|e| Error::Generic(e.to_string()))?;
@@ -56,4 +45,26 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("next address: {:#?}", wallet.get_address(AddressIndex::LastUnused)?);
 
     Ok(())
+}
+
+fn get_policy() -> Result<String, String> {
+    // Open the file in read-only mode with buffer.
+    let mut file = File::open(INPUT_FILE).map_err(|err| err.to_string())?;
+    let mut data = String::new();
+    file.read_to_string(&mut data).map_err(|err| err.to_string())?;
+
+    // Parse the string of data into a JSON value.
+    let v: serde_json::Value = serde_json::from_str(&data).map_err(|err| err.to_string())?;
+    let pubkey1 = v["pubkey1"].as_str().ok_or_else(|| format!("`pubkey1` not found in {INPUT_FILE}"))?;
+    let pubkey2 = v["pubkey2"].as_str().ok_or_else(|| format!("`pubkey2` not found in {INPUT_FILE}"))?;
+    let policy = v["policy"].as_str().ok_or_else(|| format!("`policy` not found in {INPUT_FILE}"))?;
+
+    // insert the pubkey values into the policy string
+    let policy = policy.replace("$MY_KEY", pubkey1).replace("$OTHER_KEY", pubkey2);
+
+    println!("pubkey1 is {}", pubkey1);
+    println!("pubkey2 is {}", pubkey2);
+    println!("policy is {}", policy);
+
+    Ok(policy)
 }
