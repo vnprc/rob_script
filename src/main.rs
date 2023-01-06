@@ -12,14 +12,11 @@ use bdk::descriptor::{Descriptor, Miniscript};
 use bdk::descriptor::Segwitv0;
 use bdk::{wallet::AddressIndex, Error, KeychainKind, Wallet, SyncOptions};
 use bdk::blockchain::{ElectrumBlockchain};
+use bdk::{Balance, TransactionDetails};
+use bdk::descriptor::policy::Policy;
 use serde::{Serialize, Deserialize};
 
 const INPUT_FILE: &str = "input.json";
-const BALANCE_OUTPUT_FILE: &str = "balance.json";
-const TRANSACTION_OUTPUT_FILE: &str = "transactions.json";
-const EXTERNAL_POLICY_OUTPUT_FILE: &str = "external_address_policy.json";
-const INTERNAL_POLICY_OUTPUT_FILE: &str = "internal_address_policy.json";
-const NEXT_ADDRESS_OUTPUT_FILE: &str = "addresses.json";
 const NUM_ADDRESSES: u32 = 10;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -77,11 +74,7 @@ fn get_policy() -> Result<String, String> {
 }
 
 fn generate_output_files(wallet: Wallet<MemoryDatabase>) -> Result<(), Box<dyn std::error::Error>> {
-    print_to_file(&wallet.get_balance().expect("error retrieving balance"), BALANCE_OUTPUT_FILE)?;
-    print_to_file(&wallet.list_transactions(true).expect("error retrieving transactions"), TRANSACTION_OUTPUT_FILE)?;
-    print_to_file(&wallet.policies(KeychainKind::External).expect("error retrieving external policies"), EXTERNAL_POLICY_OUTPUT_FILE)?;
-    print_to_file(&wallet.policies(KeychainKind::Internal).expect("error retrieving internal policies"), INTERNAL_POLICY_OUTPUT_FILE)?;
-    
+
     // get addresses
     // Note: this code returns the same address every time unless you specify an extended key descriptor i.e. one that ends in \*
     // TODO distinguish and handle single key vs. extended key descriptors
@@ -90,20 +83,28 @@ fn generate_output_files(wallet: Wallet<MemoryDatabase>) -> Result<(), Box<dyn s
         addresses.push(wallet.get_address(AddressIndex::New).expect("error retrieving next address").to_string())
     });
 
-    print_to_file(&Addresses { addresses }, NEXT_ADDRESS_OUTPUT_FILE)?;
+    let json_output = Output {
+        balance: &wallet.get_balance().expect("error retrieving balance"),
+        transactions: &wallet.list_transactions(true).expect("error retrieving transactions"),
+        extern_policies: &wallet.policies(KeychainKind::External).expect("error retrieving external policies").unwrap(),
+        intern_policies: &wallet.policies(KeychainKind::Internal).expect("error retrieving internal policies").unwrap(),
+        addresses: addresses,
+    };
+
+    let mut file = File::create("output.json")?;
+
+    serde_json::to_writer_pretty(&mut file, &json_output)?;
 
     Ok(())
 }
 
-fn print_to_file<T>(contents: &T, filename: &str) -> Result<(), Box<dyn std::error::Error>> 
-where 
-    T:Serialize 
-{
-    let mut file = File::create(filename)?;
-    let json = serde_json::to_string_pretty(&contents)?;
-    file.write_all(json.as_bytes())?;
-
-    Ok(())
+#[derive(Serialize)]
+struct Output<'a> {
+    balance: &'a Balance,
+    transactions: &'a Vec<TransactionDetails>,
+    extern_policies: &'a Policy,
+    intern_policies: &'a Policy,
+    addresses: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize)]
