@@ -17,6 +17,7 @@ use bdk::descriptor::policy::Policy;
 use serde::{Serialize, Deserialize};
 
 const INPUT_FILE: &str = "input.json";
+const OUTPUT_FILE: &str = "output.json";
 const NUM_ADDRESSES: u32 = 10;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -91,7 +92,7 @@ fn generate_output_files(wallet: Wallet<MemoryDatabase>) -> Result<(), Box<dyn s
         addresses: addresses,
     };
 
-    let mut file = File::create("output.json")?;
+    let mut file = File::create(OUTPUT_FILE)?;
 
     serde_json::to_writer_pretty(&mut file, &json_output)?;
 
