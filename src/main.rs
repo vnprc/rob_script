@@ -8,7 +8,7 @@ use std::io::prelude::*;
 use bdk::database::MemoryDatabase;
 use bdk::electrum_client::{Client};
 use bdk::miniscript::policy::Concrete;
-use bdk::descriptor::{Descriptor, Miniscript};
+use bdk::descriptor::{Descriptor, Miniscript, ExtendedDescriptor};
 use bdk::descriptor::Segwitv0;
 use bdk::{wallet::AddressIndex, Error, KeychainKind, Wallet, SyncOptions};
 use bdk::blockchain::{ElectrumBlockchain};
@@ -90,6 +90,8 @@ fn generate_output_files(wallet: Wallet<MemoryDatabase>) -> Result<(), Box<dyn s
         extern_policies: &wallet.policies(KeychainKind::External).expect("error retrieving external policies").unwrap(),
         intern_policies: &wallet.policies(KeychainKind::Internal).expect("error retrieving internal policies").unwrap(),
         addresses: addresses,
+        extern_descriptor: &wallet.public_descriptor(KeychainKind::External).expect("error retrieving external descriptor").unwrap(),
+        intern_descriptor: &wallet.public_descriptor(KeychainKind::Internal).expect("error retrieving internal descriptor").unwrap(),
     };
 
     let mut file = File::create(OUTPUT_FILE)?;
@@ -106,6 +108,8 @@ struct Output<'a> {
     extern_policies: &'a Policy,
     intern_policies: &'a Policy,
     addresses: Vec<String>,
+    extern_descriptor: &'a ExtendedDescriptor,
+    intern_descriptor: &'a ExtendedDescriptor,
 }
 
 #[derive(Serialize, Deserialize)]
