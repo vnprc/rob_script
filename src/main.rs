@@ -15,9 +15,8 @@ use bdk::{wallet::AddressIndex, Error, KeychainKind, Wallet, SyncOptions};
 use bdk::blockchain::{ElectrumBlockchain};
 use bdk::{Balance, TransactionDetails};
 use bdk::descriptor::policy::{Policy, SatisfiableItem, PkOrF};
-use bdk::miniscript::Terminal;
 use serde::{Serialize, Deserialize};
-use serde_json::json;
+use serde_json::{json};
 
 const INPUT_FILE: &str = "input.json";
 const OUTPUT_FILE: &str = "output.json";
@@ -31,7 +30,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let segwit_policy: Miniscript<String, Segwitv0> = policy
         .compile()
         .map_err(|e| Error::Generic(e.to_string()))?;
-
 
     let descriptor = Descriptor::new_wsh(segwit_policy.clone()).unwrap().to_string();
 
@@ -47,7 +45,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     wallet.sync(&blockchain, SyncOptions::default())?;
 
     generate_output_files(&wallet, &segwit_policy).expect("error generating output files");
-    // generate_ui_helper(&wallet).expect("error generating ui helper json");
 
     Ok(())
 }
@@ -71,6 +68,7 @@ fn get_policy_descriptions(policy: &Policy, depth: u32) -> serde_json::Value {
     });
 
     // include child policies if they exist
+    // there HAS to be a better way to add a field to an existing json object
     if children.is_some() {
         json = match json {
             serde_json::Value::Object(m) => {
@@ -93,16 +91,17 @@ fn get_policy() -> Result<String, String> {
 
     // Parse the string of data into a JSON value.
     // TODO validate pubkey and policy inputs
-    let v: serde_json::Value = serde_json::from_str(&data).map_err(|err| err.to_string())?;
-    let pubkey1 = v["pubkey1"].as_str().ok_or_else(|| format!("`pubkey1` not found in {INPUT_FILE}"))?;
-    let pubkey2 = v["pubkey2"].as_str().ok_or_else(|| format!("`pubkey2` not found in {INPUT_FILE}"))?;
-    let policy = v["policy"].as_str().ok_or_else(|| format!("`policy` not found in {INPUT_FILE}"))?;
+    let json: serde_json::Value = serde_json::from_str(&data).map_err(|err| err.to_string())?;
+    
+    let keys = json["keys"].as_object().ok_or_else(|| format!("keys not found in {INPUT_FILE}"))?;
+    let mut policy = json["policy"].as_str().ok_or_else(|| format!("`policy` not found in {INPUT_FILE}"))?.to_owned();
+    
+    for (key, value) in keys.iter() {
+        let placeholder = "$".to_owned() + &key.to_uppercase();
+        policy = policy.replace(&placeholder, value.as_str().expect("`keys` must be a map of strings"));
+    }
 
-    // insert the pubkey values into the policy string
-    // TODO come up with a better string replacement scheme than bash variables
-    let policy = policy.replace("$MY_KEY", pubkey1).replace("$OTHER_KEY", pubkey2);
-
-    Ok(policy)
+    Ok(policy.to_owned())
 }
 
 fn generate_output_files(wallet: &Wallet<MemoryDatabase>, segwit_policy: &Miniscript<String, Segwitv0>) -> Result<(), Box<dyn std::error::Error>> {
