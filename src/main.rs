@@ -52,12 +52,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn get_policy_descriptions(policy: Policy, depth: u32) -> serde_json::Value {
+fn get_policy_descriptions(policy: &Policy, depth: u32) -> serde_json::Value {
     let children: Option<serde_json::Value> = match &policy.item {
         SatisfiableItem::Thresh {items, threshold: _} => {
             let mut policy_descriptions:Vec<serde_json::Value> = Vec::new();
             for item in items {
-                policy_descriptions.push(get_policy_descriptions(item.clone(), depth + 1));
+                policy_descriptions.push(get_policy_descriptions(&item, depth + 1));
             }
             Some(json!(policy_descriptions))
         }
@@ -65,8 +65,9 @@ fn get_policy_descriptions(policy: Policy, depth: u32) -> serde_json::Value {
     };
 
     let mut json = json!({
-        "description": description(policy),
+        "description": description(&policy),
         "depth": depth,
+        "policy_id": &policy.id,
     });
 
     // include child policies if they exist
@@ -114,7 +115,7 @@ fn generate_output_files(wallet: &Wallet<MemoryDatabase>, segwit_policy: &Minisc
         addresses.push(wallet.get_address(AddressIndex::New).expect("error retrieving next address").to_string())
     });
 
-    let extern_policies = wallet.policies(KeychainKind::External).expect("error retrieving external policies").unwrap();
+    let extern_policies = &wallet.policies(KeychainKind::External).expect("error retrieving external policies").unwrap();
 
     let json_output = Output {
         balance: &wallet.get_balance().expect("error retrieving balance"),
@@ -124,7 +125,7 @@ fn generate_output_files(wallet: &Wallet<MemoryDatabase>, segwit_policy: &Minisc
         addresses: addresses,
         extern_descriptor: &wallet.public_descriptor(KeychainKind::External).expect("error retrieving external descriptor").unwrap(),
         intern_descriptor: &wallet.public_descriptor(KeychainKind::Internal).expect("error retrieving internal descriptor").unwrap(),
-        policy_structure: &get_policy_descriptions(extern_policies, 0),
+        policy_structure: &get_policy_descriptions(&extern_policies, 0),
     };
 
     let mut file = File::create(OUTPUT_FILE)?;
@@ -151,7 +152,7 @@ struct Addresses {
     addresses: Vec<String>,
 }
 
-pub fn description(policy: Policy) -> String {
+pub fn description(policy: &Policy) -> String {
     match &policy.item {
         SatisfiableItem::EcdsaSignature(key) => format!("ECDSA Sig of {}", display_key(key)),
         SatisfiableItem::SchnorrSignature(key) => {
