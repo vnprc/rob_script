@@ -105,7 +105,6 @@ fn get_policy() -> Result<String, String> {
 }
 
 fn generate_output_files(wallet: &Wallet<MemoryDatabase>) -> Result<(), Box<dyn std::error::Error>> {
-
     // get addresses
     // Note: this code returns the same address every time unless you specify an extended key descriptor i.e. one that ends in \*
     // TODO distinguish and handle single key vs. extended key descriptors
