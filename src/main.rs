@@ -44,7 +44,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     wallet.sync(&blockchain, SyncOptions::default())?;
 
-    generate_output_files(&wallet, &segwit_policy).expect("error generating output files");
+    generate_output_files(&wallet).expect("error generating output files");
 
     Ok(())
 }
@@ -104,7 +104,7 @@ fn get_policy() -> Result<String, String> {
     Ok(policy.to_owned())
 }
 
-fn generate_output_files(wallet: &Wallet<MemoryDatabase>, segwit_policy: &Miniscript<String, Segwitv0>) -> Result<(), Box<dyn std::error::Error>> {
+fn generate_output_files(wallet: &Wallet<MemoryDatabase>) -> Result<(), Box<dyn std::error::Error>> {
 
     // get addresses
     // Note: this code returns the same address every time unless you specify an extended key descriptor i.e. one that ends in \*
