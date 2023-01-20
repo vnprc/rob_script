@@ -50,6 +50,15 @@ const NUM_ADDRESSES: u32 = 10;
 /// - internal descriptor
 /// - human readable external spend policy structure (intended for wallet UI use)
 /// 
+/// cargo.toml
+/// ```
+/// [dependencies]
+/// serde = "1.0"
+/// serde_json = "1.0"
+/// bdk = { version = "0.25.0", default-features = false, features = ["compiler", "electrum", "all-keys"]}
+/// bitcoin = "0.29.2"
+/// ```
+/// 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let input_file = env::args().nth(1).unwrap_or(INPUT_FILE.to_string());
