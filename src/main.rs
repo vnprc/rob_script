@@ -23,6 +23,33 @@ const INPUT_FILE: &str = "input.json";
 const OUTPUT_FILE: &str = "output.json";
 const NUM_ADDRESSES: u32 = 10;
 
+/// Accepts a list of pubkeys and a miniscript policy in a json file. Spits out another 
+/// json file with ton of useful information.
+/// 
+/// Input filename is passed in as the first arg. Default: 'input.json'
+/// Output filename is passed in a as the second arg. Default: 'output.json'
+/// 
+/// input file example:
+/// ```
+/// {
+/// 	"keys" : {
+/// 		"pubkey1" : "[22739455/84'/1'/0']tpubDDEqu57tdMjDiQhEobb2P2X8G6XMH1Vrrq3yhJmNSJtRT5gLLzAsXpFiKLGHPTDREkkeFaAmuzaDkCF4Kj9iMJggXLb48QyBwwP9CK94iZa/0/*",
+/// 		"pubkey2" : "[3a686ab9/84'/1'/0']tpubDDAf2xGr2RqMHQwJBaYqYDr4dA3pYtgM1aCw9PeHSoUEQd9RYPKcjvZW42QT2cvNHHxa74NYcfw3jbyfZGWWwFJNWYHqXRVkp32jG2q1UjB/0/*"
+/// 	},
+/// 	"policy" : "and(pk($PUBKEY1),or(99@pk($PUBKEY2),after(5)))"
+/// }
+/// ```
+/// 
+/// output file includes:
+/// - current wallet balance (script connects to electrum.blockstream.info)
+/// - transaction history
+/// - external spend policies
+/// - internal spend policies
+/// - 10 addresses
+/// - external descriptor
+/// - internal descriptor
+/// - human readable external spend policy structure (intended for wallet UI use)
+/// 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let input_file = env::args().nth(1).unwrap_or(INPUT_FILE.to_string());
