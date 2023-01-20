@@ -2,6 +2,7 @@ extern crate serde_json;
 extern crate serde;
 extern crate bitcoin;
 
+use std::env;
 use std::fmt::Display;
 use std::fs::File;
 use std::str::FromStr;
@@ -24,7 +25,10 @@ const NUM_ADDRESSES: u32 = 10;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
 
-    let policy = get_policy().map_err(|err| err.to_string())?;
+    let input_file = env::args().nth(1).unwrap_or(INPUT_FILE.to_string());
+    let output_file = env::args().nth(2).unwrap_or(OUTPUT_FILE.to_string());
+
+    let policy = get_policy(input_file).map_err(|err| err.to_string())?;
 
     let policy = Concrete::<String>::from_str(&policy)?;
     let segwit_policy: Miniscript<String, Segwitv0> = policy
@@ -44,7 +48,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     wallet.sync(&blockchain, SyncOptions::default())?;
 
-    generate_output_files(&wallet).expect("error generating output files");
+    generate_output_files(&wallet, output_file).expect("error generating output files");
 
     Ok(())
 }
@@ -83,9 +87,9 @@ fn get_policy_descriptions(policy: &Policy, depth: u32) -> serde_json::Value {
     json
 }
 
-fn get_policy() -> Result<String, String> {
+fn get_policy(input_file: String) -> Result<String, String> {
     // Open the file in read-only mode with buffer.
-    let mut file = File::open(INPUT_FILE).map_err(|err| err.to_string())?;
+    let mut file = File::open(input_file).map_err(|err| err.to_string())?;
     let mut data = String::new();
     file.read_to_string(&mut data).map_err(|err| err.to_string())?;
 
@@ -104,7 +108,7 @@ fn get_policy() -> Result<String, String> {
     Ok(policy.to_owned())
 }
 
-fn generate_output_files(wallet: &Wallet<MemoryDatabase>) -> Result<(), Box<dyn std::error::Error>> {
+fn generate_output_files(wallet: &Wallet<MemoryDatabase>, output_file: String) -> Result<(), Box<dyn std::error::Error>> {
     // get addresses
     // Note: this code returns the same address every time unless you specify an extended key descriptor i.e. one that ends in \*
     // TODO distinguish and handle single key vs. extended key descriptors
@@ -126,7 +130,7 @@ fn generate_output_files(wallet: &Wallet<MemoryDatabase>) -> Result<(), Box<dyn 
         policy_structure: &get_policy_descriptions(&extern_policies, 0),
     };
 
-    let mut file = File::create(OUTPUT_FILE)?;
+    let mut file = File::create(output_file)?;
 
     serde_json::to_writer_pretty(&mut file, &json_output)?;
 
