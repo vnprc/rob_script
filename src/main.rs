@@ -93,8 +93,17 @@ fn get_policy_descriptions(policy: &Policy, depth: u32) -> serde_json::Value {
     let children: Option<serde_json::Value> = match &policy.item {
         SatisfiableItem::Thresh {items, threshold: _} => {
             let mut policy_descriptions:Vec<serde_json::Value> = Vec::new();
+
             for item in items {
                 policy_descriptions.push(get_policy_descriptions(&item, depth + 1));
+            }
+            Some(json!(policy_descriptions))
+        },
+        SatisfiableItem::Multisig {keys, threshold: _} => {
+            let mut policy_descriptions:Vec<serde_json::Value> = Vec::new();
+
+            for key in keys {
+                policy_descriptions.push(json!(&display_key(key)));
             }
             Some(json!(policy_descriptions))
         }
